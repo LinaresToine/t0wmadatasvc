@@ -1,2 +1,11 @@
 """T0WmaDataSvc module"""
-from T0WmaDataSvc import Config, Data
+"""
+_T0WmaDataSvc_
+
+Core libraries for Workload Management Packages
+
+"""
+#from T0WmaDataSvc import Config, Data
+
+__version__ = '2.1.3rc1'
+__all__ = []
