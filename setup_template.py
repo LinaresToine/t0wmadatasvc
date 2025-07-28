@@ -18,10 +18,10 @@ from setup_dependencies import dependencies
 # get the t0 version (thanks rucio devs)
 sys.path.insert(0, os.path.abspath('src/python'))
 from T0WmaDataSvc import __version__
-t0_version = __version__
+t0wmadatasvc_version = __version__
 
 # the contents of package_name are modified via tools/build_pypi_packages.sh
-package_name = "t0wmadatasvc"
+package_name = "t0datasvc"
 packages, py_modules = things_to_build(package_name, pypi=True)
 data_files = list_static_files(dependencies[package_name])
 
@@ -49,17 +49,17 @@ def parse_requirements(requirements_file):
         sys.exit(1)
 
 setup(name=package_name,
-      version=t0_version,
+      version=t0wmadatasvc_version,
       package_dir={'': 'src/python/'},
       packages=packages,
       py_modules=py_modules,
       data_files=data_files,
       install_requires=parse_requirements("requirements.txt"),
       maintainer='CMS DMWM Group',
-      maintainer_email='hn-cms-wmdevelopment@cern.ch',
+      maintainer_email='a.linares@cern.ch',
       cmdclass={
           'clean': CleanCommand,
       },
-      url="https://github.com/dmwm/t0wmadatasvc",
+      url="https://github.com/LinaresToine/t0wmadatasvc",
       license="Apache License, Version 2.0",
       )

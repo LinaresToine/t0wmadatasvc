@@ -44,14 +44,14 @@ def parse_requirements(requirements_file):
         sys.exit(1)
 
 
-setup(name='t0wmadatasvc',
+setup(name='t0datasvc',
       version=t0wmadatasvc_version,
       maintainer='CMS DMWM Group',
-      maintainer_email='cms-tier0-operations@cern.ch',
+      maintainer_email='a.linares@cern.ch',
       package_dir={'': 'src/python/'},
       packages=list_packages(['src/python/T0WmaDataSvc']),
       data_files=list_static_files(),
       install_requires=parse_requirements(requirements),
-      url="https://github.com/dmwm/t0wmadatasvc",
+      url="https://github.com/LinaresToine/t0wmadatasvc",
       license="Apache License, Version 2.0",
       )

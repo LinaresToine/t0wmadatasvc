@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 dependencies = {
-    't0wmadatasvc': {
+    't0datasvc': {
         'packages': ['T0WmaDataSvc+'],
         'modules': [],
         'systems': [],

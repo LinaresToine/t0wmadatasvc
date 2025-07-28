@@ -9,7 +9,7 @@ import os
 import os.path
 from distutils.core import Command, setup
 from os.path import join as pjoin
-from setup_build import BuildCommand, InstallCommand, get_path_to_t0_root, list_packages, list_static_files, load_source
+from setup_build import BuildCommand, InstallCommand, get_path_to_t0datasvc_root, list_packages, list_static_files, load_source
 
 
 class CleanCommand(Command):
@@ -53,7 +53,7 @@ class EnvCommand(Command):
         if not os.getenv('COUCHURL', False):
             # Use the default localhost URL if none is configured.
             print('export COUCHURL=http://localhost:5984')
-        here = get_path_to_t0_root()
+        here = get_path_to_t0datasvc_root()
 
         tests = here + '/test/python'
         source = here + '/src/python'
@@ -77,8 +77,8 @@ class EnvCommand(Command):
         print('export PATH=%s' % ':'.join(expath))
 
         # We want the t0 root set, too
-        print('export T0_ROOT=%s' % get_path_to_t0_root())
-        print('export T0BASE=$T0_ROOT')
+        print('export t0datasvc_root=%s' % get_path_to_t0datasvc_root())
+        print('export T0BASE=$t0datasvc_root')
 
 # The actual setup command, and the classes associated to the various options
 
@@ -99,18 +99,18 @@ DEFAULT_PACKAGES = list_packages(['src/python/T0',
 # Instead, we use the imp module to load the source file directly by
 # filename.
 
-t0_root = get_path_to_t0_root()
-t0_package = load_source('temp_module', os.path.join(t0_root,
+t0datasvc_root = get_path_to_t0datasvc_root()
+t0_package = load_source('temp_module', os.path.join(t0datasvc_root,
                                                             'src',
                                                             'python',
-                                                            'T0',
+                                                            'T0WmaDataSvc',
                                                             '__init__.py'))
 t0_version = t0_package.__version__
 
-setup(name='T0',
+setup(name='t0datasvc',
       version=t0_version,
       maintainer='CMS DMWM Group',
-      maintainer_email='cms-tier0-operations@cern.ch',
+      maintainer_email='a.linares@cern.ch',
       cmdclass={'deep_clean': CleanCommand,
                 'coverage': CoverageCommand,
                 'test': TestCommand,
@@ -118,9 +118,9 @@ setup(name='T0',
                 'build_system': BuildCommand,
                 'install_system': InstallCommand},
       # base directory for all our packages
-      package_dir={'': 'src/python/'},  # % get_path_to_t0_root()},
+      package_dir={'': 'src/python/'},  # % get_path_to_t0datasvc_root()},
       packages=DEFAULT_PACKAGES,
       data_files=list_static_files(),
-      url="https://github.com/dmwm/T0",
+      url="https://github.com/LinaresToine/T0WmaDataSvc",
       license="Apache License, Version 2.0"
       )
