@@ -1,119 +1,126 @@
-import sys, os, re, shutil
-from setuptools import setup, find_packages, Command
-from distutils.command.build import build as _build
-from setuptools.command.install import install as _install
-from distutils.spawn import spawn
-from glob import glob
+#!/usr/bin/env python
+"""
+Build, clean and test the t0 package.
+"""
+from __future__ import print_function
 
-systems = {
-    'T0WmaDataSvc': {
-        'python': ['T0WmaDataSvc'],
-        'data': [],
-        'bin': []
-    }
-}
+import importlib
+import os
+import os.path
+from distutils.core import Command, setup
+from os.path import join as pjoin
+from setup_build import BuildCommand, InstallCommand, get_path_to_t0_root, list_packages, list_static_files, load_source
 
-def get_relative_path():
-    return os.path.dirname(os.path.abspath(os.path.join(os.getcwd(), sys.argv[0])))
 
-def define_the_build(dist, system_name, patch_x=''):
-    docroot = "doc/build/html"
-    system = systems[system_name]
-    datasrc = sum((glob(f"src/{x}") for x in system['data']), [])
-    binsrc = sum((glob(f"bin/{x}") for x in system['bin']), [])
-
-    py_version = sys.version.split()[0]
-    pylibdir = f'{patch_x}lib/python{py_version[0:3]}'
-    
-    dist.packages = find_packages(where='src/python')
-    dist.package_dir = {'': 'src/python'}
-    dist.data_files = [(f'{patch_x}bin', binsrc)]
-    
-    for dir in set(x[4:].rsplit('/', 1)[0] for x in datasrc):
-        files = [x for x in datasrc if x.startswith(f'src/{dir}/')]
-        dist.data_files.append((f'{patch_x}data/{dir}', files))
-
-    if os.path.exists(docroot):
-        for dirpath, dirs, files in os.walk(docroot):
-            dist.data_files.append(
-                (f"{patch_x}doc{dirpath[len(docroot):]}", 
-                 [f"{dirpath}/{fname}" for fname in files if fname != '.buildinfo'])
-            )
-
-class BuildCommand(Command):
-    description = "Custom build for T0WmaDataSvc"
-    user_options = _build.user_options + [
-        ('system=', 's', 'build the specified system (default: T0WmaDataSvc)'),
-        ('skip-docs', None, 'skip documentation')
-    ]
+class CleanCommand(Command):
+    description = "Clean up (delete) compiled files"
+    user_options = []
 
     def initialize_options(self):
-        self.system = 'T0WmaDataSvc'
-        self.skip_docs = False
+        self.cleanMes = []
+        for root, dummyDirs, files in os.walk('.'):
+            for f in files:
+                if f.endswith('.pyc'):
+                    self.cleanMes.append(pjoin(root, f))
 
     def finalize_options(self):
-        if self.system not in systems:
-            print(f"System {self.system} unrecognised, please use '-s T0WmaDataSvc'")
-            sys.exit(1)
-
-        define_the_build(self.distribution, self.system, '')
-        shutil.rmtree(f"{get_relative_path()}/build", True)
-        shutil.rmtree("doc/build", True)
-
-    def generate_docs(self):
-        if not self.skip_docs:
-            os.environ["PYTHONPATH"] = f"{os.getcwd()}/build/lib:{os.environ.get('PYTHONPATH', '')}"
-            spawn(['make', '-C', 'doc', 'html', 'PROJECT=.'])
+        pass
 
     def run(self):
-        self.run_command('build')
-        self.generate_docs()
+        for cleanMe in self.cleanMes:
+            try:
+                os.unlink(cleanMe)
+            except Exception:
+                pass
 
-class InstallCommand(_install):
-    description = "Custom install for T0WmaDataSvc"
-    user_options = _install.user_options + [
-        ('system=', 's', 'install the specified system (default: T0WmaDataSvc)'),
-        ('patch', None, 'patch an existing installation (default: no patch)'),
-        ('skip-docs', None, 'skip documentation')
-    ]
+
+class EnvCommand(Command):
+    description = "Configure the PYTHONPATH, DATABASE and PATH variables to" + \
+                  "some sensible defaults, if not already set. Call with -q when eval-ing," + \
+                  """ e.g.:
+                      eval `python setup.py -q env`
+                  """
+
+    user_options = []
 
     def initialize_options(self):
-        super().initialize_options()
-        self.system = 'T0WmaDataSvc'
-        self.patch = None
-        self.skip_docs = False
+        pass
 
     def finalize_options(self):
-        if self.system not in systems:
-            print(f"System {self.system} unrecognised, please use '-s T0WmaDataSvc'")
-            sys.exit(1)
-        if self.patch and not os.path.isdir(f"{self.prefix}/xbin"):
-            print(f"Patch destination {self.prefix} does not look like a valid location.")
-            sys.exit(1)
-
-        patch_flag = 'x' if self.patch else ''
-        define_the_build(self.distribution, self.system, patch_flag)
-
-        self.distribution.metadata.name = self.system
-        super().finalize_options()
-
-        if self.patch:
-            self.install_lib = re.sub(r'(.*)/lib/python(.*)', r'\1/xlib/python\2', self.install_lib)
-            self.install_scripts = re.sub(r'(.*)/bin$', r'\1/xbin', self.install_scripts)
+        pass
 
     def run(self):
-        super().run()
+        if not os.getenv('COUCHURL', False):
+            # Use the default localhost URL if none is configured.
+            print('export COUCHURL=http://localhost:5984')
+        here = get_path_to_t0_root()
 
-setup(
-    name='t0wmadatasvc',
-    version='2.1.1',
-    maintainer_email='hn-cms-webInterfaces@cern.ch',
-    packages=find_packages(where='src/python'),
-    package_dir={'': 'src/python'},
-    include_package_data=True,
-    cmdclass={
-        'build_system': BuildCommand,
-        'install_system': InstallCommand
-    }
-)
+        tests = here + '/test/python'
+        source = here + '/src/python'
+        # Stuff we want on the path
+        exepth = [here + '/etc',
+                  here + '/bin']
 
+        pypath = os.getenv('PYTHONPATH', '').strip(':').split(':')
+
+        for pth in [tests, source]:
+            if pth not in pypath:
+                pypath.append(pth)
+
+        # We might want to add other executables to PATH
+        expath = os.getenv('PATH', '').split(':')
+        for pth in exepth:
+            if pth not in expath:
+                expath.append(pth)
+
+        print('export PYTHONPATH=%s' % ':'.join(pypath))
+        print('export PATH=%s' % ':'.join(expath))
+
+        # We want the t0 root set, too
+        print('export T0_ROOT=%s' % get_path_to_t0_root())
+        print('export T0BASE=$T0_ROOT')
+
+# The actual setup command, and the classes associated to the various options
+
+# Need all the packages we want to build by default, this will be overridden in sub-system builds.
+# Since it's a lot of code determine it by magic.
+DEFAULT_PACKAGES = list_packages(['src/python/T0',
+                                  'src/python/T0Component'
+                                 ])
+
+# Divine out the version of t0 from t0.__init__, which is bumped by
+# "bin/buildrelease.sh"
+
+# Obnoxiously, there's a dependency cycle when building packages. We'd like
+# to simply get the current t0 version by using
+# from t0 import __version__
+# But PYTHONPATH isn't set until after the package is built, so we can't
+# depend on the python module resolution behavior to load the version.
+# Instead, we use the imp module to load the source file directly by
+# filename.
+
+t0_root = get_path_to_t0_root()
+t0_package = load_source('temp_module', os.path.join(t0_root,
+                                                            'src',
+                                                            'python',
+                                                            'T0',
+                                                            '__init__.py'))
+t0_version = t0_package.__version__
+
+setup(name='T0',
+      version=t0_version,
+      maintainer='CMS DMWM Group',
+      maintainer_email='cms-tier0-operations@cern.ch',
+      cmdclass={'deep_clean': CleanCommand,
+                'coverage': CoverageCommand,
+                'test': TestCommand,
+                'env': EnvCommand,
+                'build_system': BuildCommand,
+                'install_system': InstallCommand},
+      # base directory for all our packages
+      package_dir={'': 'src/python/'},  # % get_path_to_t0_root()},
+      packages=DEFAULT_PACKAGES,
+      data_files=list_static_files(),
+      url="https://github.com/dmwm/T0",
+      license="Apache License, Version 2.0"
+      )
