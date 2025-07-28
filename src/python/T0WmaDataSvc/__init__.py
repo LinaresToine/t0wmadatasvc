@@ -7,5 +7,5 @@ Core libraries for Workload Management Packages
 """
 #from T0WmaDataSvc import Config, Data
 
-__version__ = '2.1.3rc3'
+__version__ = '2.1.3rc4'
 __all__ = []
